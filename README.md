@@ -1,5 +1,5 @@
 # map2220-trabalho
-Trabalho computacional final de MAP2220.
+Trabalho computacional final de MAP2220 - Fundamentos de Análise Numérica.
 
 ## Coisas para fazer
 - [ ] (provavelmente) Cálculo de derivada de funções;
