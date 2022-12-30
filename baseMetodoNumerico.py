@@ -18,8 +18,9 @@ class BaseMetodoNumerico:
       Uma função que resolva sistemas lineares, informada a matriz de 
       coeficientes e a de vetores.
   """
-  def __init__ (self, metodo_sistema_linear):
-    self.metodo_sistema_linear = metodo_sistema_linear
+  def __init__ (self, metodo_sistema_linear=False):
+    if metodo_sistema_linear:
+      self.metodo_sistema_linear = metodo_sistema_linear
 
   def resolver_sistema (self, A, b):
     """
@@ -54,5 +55,21 @@ class BaseMetodoNumerico:
     """
     return norma(M)
 
+  def funcao (self, f, x):
+    """
+      Aplica uma função `f` sobre um vetor `x`.
+
+      Parâmetros
+      ----------
+      f : function
+        Função a ser aplicada.
+      x : np.matrix
+        Vetor no qual a função será aplicada.
+    """
+    return f(*[x[i,0] for i in range(len(x))])
+
   def norma_infinito (self, y):
-      return max(abs(x) for x in y)
+    return max(abs(y[i,0]) for i in range(len(y)))
+
+  def norma_2 (self, y):
+    return sum(y[i,0]**2 for i in range(len(y)))**.5
