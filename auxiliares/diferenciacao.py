@@ -44,7 +44,8 @@ class Diferenciacao (Vetores):
       Calcula a matriz Jacobiana de uma aplicação `F` no ponto `p`.
     """
     return self.matriz([
-      self.gradiente_local(f, p) for f in F
+      [ self.derivada_parcial(f, p, i) for i in range(len(p))]
+      for f in F
     ])
 
   def Jacobiana (self, J:list):
