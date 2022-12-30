@@ -2,14 +2,12 @@
   Método de Newton Multivariado
 
   O Método de Newton para funções de uma variável real pode ser usado para encontrar raízes
-da função. Já para aplicações de maiores dimensões, havendo tantas quanto variáveis, é possível
-aplicar o mesmo princípio do método para encontrar as soluções do sistema não-linear que 
-descreve a aplicação.
+  da função. Já para aplicações de maiores dimensões, havendo tantas quanto variáveis, é possível
+  aplicar o mesmo princípio do método para encontrar as soluções do sistema não-linear que 
+  descreve a aplicação.
 """
-from baseMetodoNumerico import BaseMetodoNumerico
-from diferenciacao import Diferenciacao
+from auxiliares.baseMetodoNumerico import BaseMetodoNumerico
 from time import time
-from numpy import matrix
 
 class Newton (BaseMetodoNumerico):
   """
@@ -17,185 +15,155 @@ class Newton (BaseMetodoNumerico):
 
     Parâmetros
     ----------
+    F : list
+      Uma lista de funções das equações do sistema.
     metodo_sistema_linear : function
       Uma função que resolva sistemas lineares, informada a matriz de
       coeficientes e a de vetores.
-    metodo_diferenciacao_parcial : function
-      Uma função que será utilizada para calcular as derivadas parciais. Deve receber os
-      parâmetros `f` (function), `p` (list | np.array) e `i` (int).
-    h : float
-      Tamanho do passo a ser considerado na diferenciação.
+    metodo_diferenciacao : bool || function = False
+      Uma função que será utilizada para calcular as derivadas parciais
+      numericamente caso necessário.
+    h : float = 0
+      Tamanho do passo a ser considerado na diferenciação numérica, se
+      for o caso.
   """
-  def __init__ (self, metodo_sistema_linear, metodo_diferenciacao_parcial=False, h=0):
-    super().__init__(metodo_sistema_linear=metodo_sistema_linear)
-    if metodo_diferenciacao_parcial:
-      self.Dif = Diferenciacao(metodo_diferenciacao_parcial=metodo_diferenciacao_parcial, h=h)
-      self.jacobiana = self.Dif.jacobiana
-    pass
+  def __init__ (self, F:list, metodo_sistema_linear, metodo_diferenciacao=False,h=0):
+    if metodo_diferenciacao:
+      super().__init__(metodo_sistema_linear, metodo_diferenciacao, h)
+    else:
+      super().__init__(metodo_sistema_linear)
 
-  def passo_tempo (self, F, p0, Jac=[]):
+    # adapta as funções
+    self.F_lista = self.funcoes_f(F)
+    self.F = self.funcao_F(self.F_lista)
+  
+  def passo_tempo (self, p0, Jac=[]):
     """
-      Aplica um passo do Método de Newton Multivariado da exata mesma forma que a função
-      `passo`. Porém, retorna também o tempo demandado em cada etapa. Pode ser mais lento 
-      que a função `passo`.
-
-      Parâmetros
-      ----------
-      F : list
-        Aplicação a ser desenvolvida no método.
-      p0 : np.array
-        Posição inicial.
-      Jac : list = []
-        Matriz jacobiana. Se não for passada nenhuma, será 
-        calculada numericamente.
-
-      Retorna
-      -------
-      (np.array, np.array, np.array, dict)
-        Respectivamente, novo ponto `p`, vetor `y` (resultado 
-        de `Jy - F`), `J` e informação de tempo.
+      Aplica um passo do Método de Newton, armazenando
+      o tempo decorrido para calcular cada parte.
     """
     # dicionário para armazenar os tempos
     tempo = dict()
 
     t0 = time()
-    # matriz jacobiana
-    if len(Jac) == 0: J = matrix(self.jacobiana(F, p0))
-    else: J = matrix([[ self.funcao(Jij, p0) for Jij in Ji] for Ji in Jac])
+    # matriz Jacobiana
+    if type(Jac) == list: J = self.jacobiana_local(self.F_lista, p0)
+    else: J = Jac(p0)
     tempo["jacobiana"] = time() - t0
 
     # - F(x0)
     t0 = time()
-    Fx0 = - matrix([ [self.funcao(f, p0)] for f in F ])
+    Fx0 = - self.F(p0)
     tempo["Fx0"] = time() - t0
 
-    # J(x0)*y = -F(x0)
+    # J(x0) * y = - F(x0)
     t0 = time()
-    y = self.resolver_sistema(J, Fx0)
+    y = self.resolver_sistema_linear(J, Fx0)
     tempo["y"] = time() - t0
 
     # aplica o passo
-    t0 = time()
-    p = p0 + y
     tempo["p"] = time() - t0
+    p = p0 + y
 
-    # o tempo total será a soma de todos os tempos
+    # tempo total é a soma de todos
     tempo["total"] = sum(tempo[i] for i in tempo)
-    
+
     return p, y, J, tempo
 
-  def passo (self, F, p0, Jac=[]):
+  def passo (self, p0, Jac=[]):
     """
-      Aplica um passo do Método de Newton Multivariado.
-
-      Parâmetros
-      ----------
-      F : list
-        Aplicação a ser desenvolvida no método.
-      p0 : np.array
-        Posição inicial.
-      Jac : list = []
-        Matriz jacobiana. Se não for passada nenhuma, será 
-        calculada numericamente.
-
-      Retorna
-      -------
-      (np.array, np.array, np.array)
-        Respectivamente, novo ponto `p`, vetor `y` (resultado 
-        de `Jy - F`) e `J`.
+      Aplica um passo do Método de Newton.
     """
-    # matriz jacobiana
-    if len(Jac) == 0: J = matrix(self.jacobiana(F, p0))
-    else: J = matrix([[ self.funcao(Jij, p0) for Jij in Ji] for Ji in Jac])
+    # matriz Jacobiana
+    if type(Jac) == list: J = self.jacobiana_local(self.F_lista, p0)
+    else: J = Jac(p0)
 
     # - F(x0)
-    Fx0 = - matrix([ [self.funcao(f, p0)] for f in F ])
+    Fx0 = - self.F(p0)
 
-    # J(x0)*y = -F(x0)
-    y = self.resolver_sistema(J, Fx0)
+    # J(x0) * y = - F(x0)
+    y = self.resolver_sistema_linear(J, Fx0)
 
     # aplica o passo
     p = p0 + y
-    
-    return p, y, J, ()
 
-  def aplicar (self, F, p0, Jac=[], erro_admitido:float=10e-5, qntd_maxima_passos:int=10e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False)->tuple:
+    return p, y, J, 0
+
+  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos:int=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False)->tuple:
     """
       Para facilitar a aplicação, pode-se utilizar esta função.
 
       Parâmetros
       ----------
-      F : list
-        Aplicação a ser desenvolvida no método.
-      p0 : np.array
-        Posição inicial.
-      Jac : list | np.array | np.matrix = []
-        Matriz jacobiana. Se não for passada nenhuma, será 
-        calculada numericamente.
+      p0 : list || np.matrix
+        Ponto inicial.
+      Jac : list = []      
+        Matriz Jacobiana. Se não for passada nenhuma, será calculada
+        numericamente.
       erro_admitido : float
         É o erro máximo admitido. Assim que o erro se tornar estritamente 
-        menor a função encerrará.
+        menor a função encerrá.
       qntd_maxima_passos : int
-        Caso o método não venha a convergir para a solução, ao atingir esta
-        quantidade de passos a função encerrará.
+        Caso o método não venha a convergir para a solução, ao atingir
+        esta quantidade de passos a função encerrará.
       solucao_exata : list = []
-        Caso se possua a solução exata, é possível informar que seja calculado
-        o erro real do método.
+        Caso se possua a solução exata, é possível informá-la para que
+        seja calculado o erro real do método.
       qntd_exata_passos : int = -1
-        Se passado valor inteiro positivo, a função encerrá somente ao atingir 
-        esta quantidade exata de passos.
+        Se passado um valor inteiro positivo, a função encerrá somente ao 
+        atingir esta quantidade de passos.
       medir_tempo : bool = False
-        Caso se deseje medir o tempo necessário para calcular cada passo, deve-se
-        passar `True` e as informações de tempo serão retornadas no dicionário de 
-        informações.
+        Caso se deseje medir o tempo necessário para calcular cada passo,
+        deve-se passar `True` e as informações de tempo serão retornadas
+        no dicionário de informações.
     """
-    # se o ponto inicial for do tipo list, precisa converter
-    if type(p0) == list: p0 = matrix(p0)
+    # se o ponto inicial for do tipo lista, precisa converter
+    if type(p0) == list: 
+      if type(p0[0]) == list: p0 = self.matriz(p0)
+      else: p0 = self.matriz([[p] for p in p0])
 
-    # dicionário de informações
-    info = {
-      "erros": [], 
-      "erro_real": [],
-      "passo": 0
-    }
-    
+    # se a matriz Jacobiana for do tipo lista, então precisa converter
+    if len(Jac) > 0: Jac = self.Jacobiana(Jac)
+
+    # dicinário de informações
+    info = { "erro": [], "erro real": [], "passo": 0 }
+
     # caso se deseje armazenar informações de tempo
-    if medir_tempo: 
+    if medir_tempo:
       info["tempo"] = dict()
       metodo = self.passo_tempo
     else:
       metodo = self.passo
-
-
+    
+    # começa o método
     while True:
       # aplica o método
-      p0, y, J_cond, tempo = metodo(F, p0, Jac)
+      p0, y, J_cond, tempo = metodo(p0, Jac)
+
+      # medição de tempo
       if medir_tempo:
-        for tipo in tempo: 
-          try:
-            info["tempo"][tipo] += [tempo[tipo]]
-          except:
-            info["tempo"][tipo] = [tempo[tipo]]
-      
-      # medição do erro
+        for etapa in tempo:
+          try:    info["tempo"][etapa] += [tempo[etapa]]
+          except: info["tempo"][etapa] = [tempo[etapa]]
+
+      # medição de erro
       erro = self.norma_infinito(y)
-      info["erros"].append(erro)
+      info["erro"].append(erro)
 
       # caso possua solução exata informada, a calcula
-      if len(solucao_exata) > 0: 
-        info["erro_real"].append(self.norma_infinito(solucao_exata - p0))
-
+      if len(solucao_exata) > 0:
+        info["erro real"].append(self.norma_infinito(solucao_exata - p0))
+      
       # adiciona à quantidade de passos
       info["passo"] += 1
 
-      # verifica se há quantidade exata de passos para parar 
+      # verifica se há quantidade exata de passos para parar
       if qntd_exata_passos > 0:
         # se tiver, verifica se já bateu
-        if info["passo"] == qntd_exata_passos:
-          break 
+        if info["passo"] == qntd_exata_passos: break
       else:
         # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
         if info["passo"] >= qntd_maxima_passos or erro < erro_admitido:
           break
-
+    
     return p0, info
