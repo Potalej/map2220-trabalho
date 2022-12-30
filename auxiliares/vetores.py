@@ -41,10 +41,10 @@ class Vetores:
       A partir de uma lista de funções multivariadas, cria uma lista de funções
       que recebam facilmente vetores matriciais.
     """
-    return [
-      lambda x: self.funcao(f, x)
-      for f in F
-    ]
+    lista = []
+    for f in F:
+      lista.append(lambda x, fi=f: self.funcao(fi,x))
+    return lista
 
   def funcao_F (self, F:list):
     """
@@ -52,7 +52,7 @@ class Vetores:
       campo vetorial.
     """
     return lambda x: self.matriz([
-      [ f(x) ] for f in F
+      [ (lambda x, fi=f: fi(x))(x) ] for f in F
     ])
 
   def norma_infinito (self, y):
