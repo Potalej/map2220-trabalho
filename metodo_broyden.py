@@ -108,12 +108,13 @@ class Broyden (BaseMetodoNumerico):
       else: p0 = self.matriz([[p] for p in p0])
 
     # se a matriz Jacobiana for do tipo lista, então precisa converter
-    if len(Jac) > 0: Jac = self.Jacobiana(Jac)
+    if len(Jac) > 0: Jac = self.Jacobiana(Jac)(p0)
     # se ela não for informada, precisa calcular numericamente
-    else: Jac = self.jacobiana_local(self.F, p0)
+    else: 
+      Jac = self.jacobiana_local(self.F_lista, p0)
 
     # precisa calcular a inversa da Jacobiana
-    J_inv = inv(Jac(p0))
+    J_inv = inv(Jac)
 
     # precisamos definir que A_1 = J_1 e calcular F(p0)
     A_inv = J_inv
