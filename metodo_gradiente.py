@@ -1,7 +1,28 @@
+"""
+  Método do Gradiente
+
+  O Método do Gradiente para aproximar soluções de sistemas de equações 
+  não lineares. Por sua pequena taxa de convergência, o utilizamos para
+  conseguir melhores pontos iniciais para aplicar o método de Newton ou 
+  de Broyden.
+"""
 from auxiliares.baseMetodoNumerico import BaseMetodoNumerico
 
 class Gradiente (BaseMetodoNumerico):
+  """
+    Método do Gradiente.
   
+    Parâmetros
+    ----------
+    F : list
+      Uma lista de funções das equações do sistema.
+    metodo_diferenciacao : bool || function = False
+      Uma função que será utilizada para calcular as derivadas parciais
+      numericamente caso necessário.
+    h : float = 0
+      Tamanho do passo a ser considerado na diferenciação numérica, se
+      for o caso.
+  """
   def __init__ (self, F, metodo_diferenciacao=False, h=0):
     super().__init__(metodo_diferenciacao=metodo_diferenciacao, h=h)
 
@@ -13,24 +34,38 @@ class Gradiente (BaseMetodoNumerico):
     self.g = self.funcao_g()
 
   def funcao_g (self):
+    """
+      Cria a função `g(x) = f1(x)² + f1(x)² + ... + fn(x)²`.
+    """
     return lambda x: sum( f(x)**2 for f in self.F_lista )
 
   def grad_g (self, Jac, F):
+    """
+      Calcula o gradiente analítico da função `g`.
+    """
     return lambda x: 2 * Jac(x).T * F(x)
 
   def valores_h (self, lista_g: list, lista_alpha: list)->list:
-    """"""
+    """
+      Coeficientes do polinômio interpolador a partir das diferenças
+      divididas de Newton.
+    """
     h_1 = (lista_g[1] - lista_g[0])/(lista_alpha[1] - lista_alpha[0])
     h_2 = (lista_g[2] - lista_g[1])/(lista_alpha[2] - lista_alpha[1])
     h_3 = (h_2 - h_1)/(lista_alpha[2] - lista_alpha[0])
 
     return [h_1, h_2, h_3]
 
-  def raiz_derivada_polinomio (self, h_1, h_3, alpha_2):
+  def raiz_derivada_polinomio (self, h_1:float, h_3:float, alpha_2:float)->float:
+    """
+      Calcula a raiz da derivada do polinômio quadrático.
+    """
     return (h_3 * alpha_2 - h_1)/(2 * h_3)
 
   def passo (self, p0, gradiente_g=False):
-    """"""
+    """
+      Aplica um passo do Método do Gradiente.
+    """
     # aplica g em p0
     g_p0 = self.g(p0)
 
@@ -92,7 +127,21 @@ class Gradiente (BaseMetodoNumerico):
     
     return p1
 
-  def aplicar (self, p0, Jac=[], qntd_passos:int=2):
+  def aplicar (self, p0, Jac=[], qntd_exata_passos:int=2):
+    """
+      Para facilitar a aplicação, pode-se utilizar esta função.
+
+      Parâmetros
+      ----------
+      p0 : list || np.matrix
+        Ponto inicial.
+      Jac : list = []      
+        Matriz Jacobiana. Se não for passada nenhuma, será calculada
+        numericamente.
+      qntd_exata_passos : int = -1
+        Se passado um valor inteiro positivo, a função encerrá somente ao 
+        atingir esta quantidade de passos.
+    """
 
     # se o ponto inicial for do tipo lista, precisa converter
     if type(p0) == list: 
@@ -105,15 +154,17 @@ class Gradiente (BaseMetodoNumerico):
       Jac = self.Jacobiana(Jac)
       gradiente_g = self.grad_g(Jac, self.F)
 
-    passo = 0
+    # para salvar os pontos
     pontos = []    
+    # aplica o método
+    passo = 0
     while True:
-
+      # aplica um passo do método do Gradiente
       p0 = self.passo(p0, gradiente_g)
+      # salva o novo ponto
       pontos.append(p0)
-
+      # adiciona ao passo
       passo += 1
-
-      if passo == qntd_passos: break
-    
+      # se atingiu o número de passos, encerra
+      if passo == qntd_exata_passos: break
     return pontos

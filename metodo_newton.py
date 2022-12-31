@@ -135,6 +135,11 @@ class Newton (BaseMetodoNumerico):
     else:
       metodo = self.passo
     
+    # arruma a solução exata, caso tenha
+    if len(solucao_exata) > 0:
+      if type(solucao_exata[0]) == list:solucao_exata = self.matriz(solucao_exata)
+      else: solucao_exata = self.matriz([[p] for p in solucao_exata])
+
     # começa o método
     while True:
       # aplica o método
