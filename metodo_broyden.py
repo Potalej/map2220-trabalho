@@ -74,7 +74,7 @@ class Broyden (BaseMetodoNumerico):
     p1 = p - A_inv * self.F(p)
     return p1, 0
 
-  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False)->tuple:
+  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
     """
       Para facilitar a aplicação, pode-se utilizar esta função.
 
@@ -101,6 +101,12 @@ class Broyden (BaseMetodoNumerico):
         Caso se deseje medir o tempo necessário para calcular cada passo,
         deve-se passar `True` e as informações de tempo serão retornadas
         no dicionário de informações.
+      limitacao_float : bool = False
+        Encerra o método somente quando atingir o número máximo de passos
+        informado ou quando a norma infinito das diferenças de passo para
+        passo atingir seu mínimo fixo.
+      exibir_causa_fim : bool = True
+        Exibirá a causa do encerramento do método quando `True`.
     """
     # se o ponto inicial for do tipo lista, precisa converter
     if type(p0) == list: 
@@ -125,7 +131,7 @@ class Broyden (BaseMetodoNumerico):
       else: solucao_exata = self.matriz([[p] for p in solucao_exata])
 
     # dicinário de informações
-    info = { "erro": [], "erro real": [], "passo": 0, "ponto": [] }
+    info = { "erro": [], "erro real": [], "passo": 0, "x": [] , "residuo": []}
 
     # caso se deseje armazenar informações de tempo
     if medir_tempo:
@@ -138,13 +144,19 @@ class Broyden (BaseMetodoNumerico):
       # aplica o método
       p1, tempo = metodo(p0, A_inv)
 
+      # salva o valor obtido
+      info["x"].append(p1)
+
+      # salva o resíduo
+      info["residuo"].append(self.norma_infinito(self.F(p1)))
+
       # erro
-      erro = self.norma_2(p1 - p0)
+      erro = self.norma_infinito(p1 - p0)
       info["erro"].append(erro)
 
       # erro real
       if len(solucao_exata) > 0:
-        info["erro real"].append(self.norma_2(solucao_exata - p0))
+        info["erro real"].append(self.norma_infinito(solucao_exata - p0))
 
       # adicionada à quantidade de passos
       info["passo"] += 1
@@ -152,10 +164,26 @@ class Broyden (BaseMetodoNumerico):
       # verifica se há quantidade exata de passos para parar
       if qntd_exata_passos > 0:
         # se tiver, verifica se já bateu
-        if info["passo"] == qntd_exata_passos: break
+        if info["passo"] == qntd_exata_passos: 
+          if exibir_causa_fim: print('[ quantidade exata de passos atingida ]')
+          break
       else:
         # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
-        if info["passo"] >= qntd_maxima_passos or erro < erro_admitido:
+        if info["passo"] >= qntd_maxima_passos:
+          if exibir_causa_fim: print('[ quantidade máxima de passos atingida ]')
+          break
+        # caso queira verificar por limitação de ponto flutuante, verifica
+        elif limitacao_float:
+          if len(info["x"]) >= 2:
+            if info["erro"][-1] == info["erro"][-2]:
+              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
+              break
+        elif erro <= erro_admitido:
+          if exibir_causa_fim: print('[ erro inferior ao erro admitido ]')
+          break
+        # se por algum acaso o erro zerar, então convergiu
+        if erro == 0:
+          if exibir_causa_fim: print('[ a norma da diferença zerou ]')
           break
 
       # agora calculamos o novo A_inv
@@ -171,9 +199,6 @@ class Broyden (BaseMetodoNumerico):
           except: info["tempo"][etapa] = [tempo[etapa]]
 
       else: A_inv = self.novoA_inv(p0, p1, A_inv)
-    
-      # salva o valor
-      info["ponto"].append(p1)
 
       p0 = p1
   

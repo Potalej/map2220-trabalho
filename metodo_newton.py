@@ -89,7 +89,7 @@ class Newton (BaseMetodoNumerico):
 
     return p, y, J, 0
 
-  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos:int=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False)->tuple:
+  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos:int=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
     """
       Para facilitar a aplicação, pode-se utilizar esta função.
 
@@ -116,6 +116,12 @@ class Newton (BaseMetodoNumerico):
         Caso se deseje medir o tempo necessário para calcular cada passo,
         deve-se passar `True` e as informações de tempo serão retornadas
         no dicionário de informações.
+      limitacao_float : bool = False
+        Encerra o método somente quando atingir o número máximo de passos
+        informado ou quando a norma infinito das diferenças de passo para
+        passo atingir seu mínimo fixo.
+      exibir_causa_fim : bool = True
+        Exibirá a causa do encerramento do método quando `True`.
     """
     # se o ponto inicial for do tipo lista, precisa converter
     if type(p0) == list: 
@@ -126,7 +132,7 @@ class Newton (BaseMetodoNumerico):
     if len(Jac) > 0: Jac = self.Jacobiana(Jac)
 
     # dicinário de informações
-    info = { "erro": [], "erro real": [], "passo": 0 }
+    info = { "erro": [], "erro real": [], "passo": 0, "x": [], "residuo": [] }
 
     # caso se deseje armazenar informações de tempo
     if medir_tempo:
@@ -145,11 +151,17 @@ class Newton (BaseMetodoNumerico):
       # aplica o método
       p0, y, J_cond, tempo = metodo(p0, Jac)
 
+      # salva o valor obtido
+      info["x"].append(p0)
+
+      # salva o resíduo
+      info["residuo"].append(self.norma_infinito(self.F(p0)))
+      
       # medição de tempo
       if medir_tempo:
         for etapa in tempo:
           try:    info["tempo"][etapa] += [tempo[etapa]]
-          except: info["tempo"][etapa] = [tempo[etapa]]
+          except: info["tempo"][etapa]  = [tempo[etapa]]
 
       # medição de erro
       erro = self.norma_infinito(y)
@@ -165,10 +177,26 @@ class Newton (BaseMetodoNumerico):
       # verifica se há quantidade exata de passos para parar
       if qntd_exata_passos > 0:
         # se tiver, verifica se já bateu
-        if info["passo"] == qntd_exata_passos: break
+        if info["passo"] == qntd_exata_passos: 
+          if exibir_causa_fim: print('[ quantidade exata de passos atingida ]')
+          break
       else:
+        # caso queira verificar por limitação de ponto flutuante, verifica
+        if limitacao_float:
+          if len(info["x"]) >= 2:
+            if info["erro"][-1] == info["erro"][-2]:
+              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
+              break
         # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
-        if info["passo"] >= qntd_maxima_passos or erro < erro_admitido:
+        elif info["passo"] >= qntd_maxima_passos:
+          if exibir_causa_fim: print('[ quantidade máxima de passos atingida ]')
+          break
+        elif erro < erro_admitido:
+          if exibir_causa_fim: print('[ erro inferior ao erro admitido ]')
+          break
+        # se por algum acaso o erro zerar, então convergiu
+        if erro == 0:
+          if exibir_causa_fim: print('[ a norma da diferença zerou ]')
           break
     
     return p0, info
