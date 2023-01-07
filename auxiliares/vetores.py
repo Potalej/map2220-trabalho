@@ -5,7 +5,7 @@
   no Python, então esta classe ajuda a aplicar funções em vetores 
   matriciais, ou seja, que possuem dois índices. 
 """
-from numpy import matrix
+from numpy import matrix, all
 
 class Vetores:
   """
@@ -60,3 +60,7 @@ class Vetores:
 
   def norma_2 (self, y):
     return sum(y[i,0]**2 for i in range(len(y)))**.5
+
+  def igualdade_vetores (self, x, y)->bool:
+    """Verifica se dois vetores são iguais utilizando np.all"""
+    return all(x == y)
