@@ -6,6 +6,7 @@
   de equações não-lineares.
 """
 from auxiliares.diferenciacao import Diferenciacao
+from auxiliares.exibir import grafico_tempo, percentual
 
 class BaseMetodoNumerico(Diferenciacao):
   """
@@ -31,7 +32,7 @@ class BaseMetodoNumerico(Diferenciacao):
 
   def resolver_sistema_linear (self, A, b):
     """
-      Para resolver sistemas lineares, independente de uqal método tenha
+      Para resolver sistemas lineares, independente de qual método tenha
       se informado no instanciamento.
 
       Parâmetros
@@ -47,3 +48,30 @@ class BaseMetodoNumerico(Diferenciacao):
         Vetor de solução.
     """
     return self.metodo_sistema_linear(A, b)  
+
+  def bateria_testes_tempo (self, qntd_vezes:int, params:list, etapas:list=[]):
+    """
+      Para facilitar a medição do tempo consumido pelo método instanciado na
+      aplicação.
+    """
+    tempo_medio = {}
+    for vez in range(qntd_vezes):
+      # aplica o método
+      x_vez, info_vez = self.aplicar(*params)
+      for indice in info_vez['tempo']:
+        try:    tempo_medio[indice] += sum(info_vez['tempo'][indice])
+        except: tempo_medio[indice]  = sum(info_vez['tempo'][indice])
+    
+    percentuais = {}
+    for indice in tempo_medio:
+      if indice != 'total': percentuais[indice] = tempo_medio[indice] / tempo_medio['total']
+
+    if etapas == []: etapas = [*percentuais.keys()]
+
+    print(f"> TEMPO TOTAL: {round(tempo_medio['total'], 4)}s")
+    print("> PERCENTUAIS")
+    for indice in percentuais:
+      print(f"* {indice}: {percentual(percentuais[indice])}%")
+
+    grafico_tempo(etapas, percentuais.values())
+  
