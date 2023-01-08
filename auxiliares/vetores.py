@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
   CLASSE BÁSICA PARA APLICAÇÃO DE FUNÇÕES VETORIAIS
 
@@ -6,6 +7,12 @@
   matriciais, ou seja, que possuem dois índices. 
 """
 from numpy import matrix, all
+try:
+  from numpy import float128 as flt
+  print('[ usando float128 ]\n')
+except:
+  flt = float
+
 
 class Vetores:
   """
@@ -64,3 +71,10 @@ class Vetores:
   def igualdade_vetores (self, x, y)->bool:
     """Verifica se dois vetores são iguais utilizando np.all"""
     return all(x == y)
+
+  def ponto_matriz (self, x):
+    if type(x) == list: 
+      if type(x[0]) == list: return self.matriz(x)
+      else: return self.matriz([[float(xi)] for xi in x])
+    else:
+      return x

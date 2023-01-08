@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
   CLASSE PARA APLICAÇÃO DE MÉTODOS NUMÉRICOS
 
@@ -69,6 +70,7 @@ class BaseMetodoNumerico(Diferenciacao):
     if etapas == []: etapas = [*percentuais.keys()]
 
     print(f"> TEMPO TOTAL: {round(tempo_medio['total'], 4)}s")
+    print(f"> TEMPO TOTAL MÉDIO: {round(tempo_medio['total']/qntd_vezes, 6)}s")
     print("> PERCENTUAIS")
     for indice in percentuais:
       print(f"* {indice}: {percentual(percentuais[indice])}%")

@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 from tabulate import tabulate
 import matplotlib.pyplot as plt
 
@@ -22,11 +23,12 @@ def exibir_vetores (info:dict, formato:str="presto")->str:
     tabela.append([i])
     tabela[-1] += [ info["x"][i][j,0] for j in range(n)]
     tabela[-1] += [ info["erro"][i] ]
+    tabela[-1] += [ info["erro real"][i] ]
     tabela[-1] += [ info["residuo"][i] ]
 
   tabela = list(zip(*tabela))
 
-  cabecalho = ["i"] + [f"x{i+1}" for i in range(n)] + ["erro", "resíduo"]
+  cabecalho = ["i"] + [f"x{i+1}" for i in range(n)] + ["diferença", "erro", "resíduo"]
   exibir(cabecalho, tabela, formato)
 
 def grafico_tempo (etapas:list, valores:list):

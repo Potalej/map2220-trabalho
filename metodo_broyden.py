@@ -8,7 +8,7 @@
 """
 from auxiliares.baseMetodoNumerico import BaseMetodoNumerico
 from numpy.linalg import inv
-from time import time
+from time import perf_counter as time
 
 class Broyden (BaseMetodoNumerico):
   """
@@ -33,7 +33,7 @@ class Broyden (BaseMetodoNumerico):
     self.F_lista = self.funcoes_f(F)
     self.F = self.funcao_F(self.F_lista)
 
-  def novoA_inv (self, p0, p1, A0_inv):
+  def novoA_inv (self, p0, p1, Fp, A0_inv):
     """
       Calcula a nova matriz A^-1.
 
@@ -46,10 +46,10 @@ class Broyden (BaseMetodoNumerico):
       A0_inv : numpy.matrix
         Matriz A inversa atual.
     """
-    y1 = self.F(p1) - self.F(p0)
+    y1 = self.F(p1) - Fp
     s1 = p1 - p0
-
-    A1_inv = A0_inv + (s1 - A0_inv * y1)*s1.T*A0_inv / (s1.T * A0_inv * y1)
+    s1t = s1.T
+    A1_inv = A0_inv + (s1 - A0_inv * y1)*s1t*A0_inv / (s1t * A0_inv * y1)
     return A1_inv
 
   def passo_tempo (self, p, A_inv):
@@ -61,10 +61,11 @@ class Broyden (BaseMetodoNumerico):
 
     # calcula o novo p
     t0 = time()
-    p1 = p - A_inv * self.F(p)
+    Fp = self.F(p)
+    p1 = p - A_inv * Fp
     tempo["p1"] = time() - t0
 
-    return p1, tempo
+    return p1, tempo, Fp
 
   def passo (self, p, A_inv):
     """
@@ -74,7 +75,7 @@ class Broyden (BaseMetodoNumerico):
     p1 = p - A_inv * self.F(p)
     return p1, 0
 
-  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
+  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
     """
       Para facilitar a aplicação, pode-se utilizar esta função.
 
@@ -109,9 +110,7 @@ class Broyden (BaseMetodoNumerico):
         Exibirá a causa do encerramento do método quando `True`.
     """
     # se o ponto inicial for do tipo lista, precisa converter
-    if type(p0) == list: 
-      if type(p0[0]) == list: p0 = self.matriz(p0)
-      else: p0 = self.matriz([[p] for p in p0])
+    p0 = self.ponto_matriz(p0)
 
     # se a matriz Jacobiana for do tipo lista, então precisa converter
     if len(Jac) > 0: Jac = self.Jacobiana(Jac)(p0)
@@ -131,7 +130,7 @@ class Broyden (BaseMetodoNumerico):
       else: solucao_exata = self.matriz([[p] for p in solucao_exata])
 
     # dicinário de informações
-    info = { "erro": [], "erro real": [], "passo": 0, "x": [] , "residuo": []}
+    info = { "erro": [], "erro real": [], "passo": 0, "x": [] , "jacs": [], "residuo": []}
 
     # caso se deseje armazenar informações de tempo
     if medir_tempo:
@@ -142,7 +141,7 @@ class Broyden (BaseMetodoNumerico):
     # aplicando
     while True:
       # aplica o método
-      p1, tempo = metodo(p0, A_inv)
+      p1, tempo, Fp = metodo(p0, A_inv)
 
       # salva o valor obtido
       info["x"].append(p1)
@@ -156,7 +155,7 @@ class Broyden (BaseMetodoNumerico):
 
       # erro real
       if len(solucao_exata) > 0:
-        info["erro real"].append(self.norma_infinito(solucao_exata - p0))
+        info["erro real"].append(self.norma_2(solucao_exata - p0))
 
       # adicionada à quantidade de passos
       info["passo"] += 1
@@ -189,7 +188,7 @@ class Broyden (BaseMetodoNumerico):
       # agora calculamos o novo A_inv
       if medir_tempo:
         t0 = time()
-        A_inv = self.novoA_inv(p0, p1, A_inv)
+        A_inv = self.novoA_inv(p0, p1, Fp, A_inv)
         tempo["A_inv"] = time() - t0
         tempo["total"] = sum(tempo[i] for i in tempo)
         
@@ -199,6 +198,9 @@ class Broyden (BaseMetodoNumerico):
           except: info["tempo"][etapa] = [tempo[etapa]]
 
       else: A_inv = self.novoA_inv(p0, p1, A_inv)
+
+      # armazena a matriz jacobiana
+      info["jacs"].append(A_inv)
 
       p0 = p1
   

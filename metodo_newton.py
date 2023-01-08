@@ -7,7 +7,7 @@
   descreve a aplicação.
 """
 from auxiliares.baseMetodoNumerico import BaseMetodoNumerico
-from time import time
+from time import perf_counter as time
 
 class Newton (BaseMetodoNumerico):
   """
@@ -124,15 +124,13 @@ class Newton (BaseMetodoNumerico):
         Exibirá a causa do encerramento do método quando `True`.
     """
     # se o ponto inicial for do tipo lista, precisa converter
-    if type(p0) == list: 
-      if type(p0[0]) == list: p0 = self.matriz(p0)
-      else: p0 = self.matriz([[p] for p in p0])
+    p0 = self.ponto_matriz(p0)
 
     # se a matriz Jacobiana for do tipo lista, então precisa converter
     if len(Jac) > 0: Jac = self.Jacobiana(Jac)
 
     # dicinário de informações
-    info = { "erro": [], "erro real": [], "passo": 0, "x": [], "residuo": [] }
+    info = { "erro": [], "erro real": [], "passo": 0, "x": [], "jacs": [], "residuo": [] }
 
     # caso se deseje armazenar informações de tempo
     if medir_tempo:
@@ -153,6 +151,9 @@ class Newton (BaseMetodoNumerico):
 
       # salva o valor obtido
       info["x"].append(p0)
+
+      # armazena a matriz jacobiana
+      info["jacs"].append(J_cond)
 
       # salva o resíduo
       info["residuo"].append(self.norma_infinito(self.F(p0)))
@@ -181,16 +182,16 @@ class Newton (BaseMetodoNumerico):
           if exibir_causa_fim: print('[ quantidade exata de passos atingida ]')
           break
       else:
-        # caso queira verificar por limitação de ponto flutuante, verifica
-        if limitacao_float:
-          if len(info["x"]) >= 2:
-            if info["erro"][-1] == info["erro"][-2]:
-              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
-              break
         # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
-        elif info["passo"] >= qntd_maxima_passos:
+        if info["passo"] >= qntd_maxima_passos:
           if exibir_causa_fim: print('[ quantidade máxima de passos atingida ]')
           break
+        # caso queira verificar por limitação de ponto flutuante, verifica
+        elif limitacao_float:
+          if len(info["x"]) >= 3:
+            if info["erro"][-1] == info["erro"][-3]:
+              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
+              break
         elif erro < erro_admitido:
           if exibir_causa_fim: print('[ erro inferior ao erro admitido ]')
           break

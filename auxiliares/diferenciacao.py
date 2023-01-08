@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 """
   MÉTODOS DE DIFERENCIAÇÃO NUMÉRICA
 
@@ -29,12 +30,14 @@ class Diferenciacao (Vetores):
       Calcula a derivada parciala de uma função `f` no ponto `p` com respeito à
       coordenada `i`, assumindo que esta exista.
     """
+    p = self.ponto_matriz(p)
     return self.metodo_diferenciacao(f, p, i)
 
   def gradiente_local (self, f, p):
     """
       Calcula o gradiente de uma função `f` em um dado ponto `p`.
     """
+    p = self.ponto_matriz(p)
     return self.matriz([
       [self.derivada_parcial(f, p, i)] for i in range(len(p))
     ])
@@ -43,6 +46,7 @@ class Diferenciacao (Vetores):
     """
       Calcula a matriz Jacobiana de uma aplicação `F` no ponto `p`.
     """
+    p = self.ponto_matriz(p)
     return self.matriz([
       [ self.derivada_parcial(f, p, i) for i in range(len(p))]
       for f in F
