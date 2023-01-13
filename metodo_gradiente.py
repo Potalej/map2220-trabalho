@@ -154,17 +154,23 @@ class Gradiente (BaseMetodoNumerico):
       Jac = self.Jacobiana(Jac)
       gradiente_g = self.grad_g(Jac, self.F)
 
+    # dicinário de informações
+    info = { "erro": [], "erro real": [], "passo": 0, "x": [] , "jacs": [], "residuo": []}
+
     # para salvar os pontos
     pontos = []    
     # aplica o método
-    passo = 0
     while True:
       # aplica um passo do método do Gradiente
-      p0 = self.passo(p0, gradiente_g)
+      x0 = self.passo(p0, gradiente_g)
       # salva o novo ponto
-      pontos.append(p0)
+      pontos.append(x0)
+      # salva o erro
+      info["erro"].append(self.norma_infinito(p0 - x0))
+      # substitui
+      p0 = x0
       # adiciona ao passo
-      passo += 1
+      info["passo"] += 1
       # se atingiu o número de passos, encerra
-      if passo == qntd_exata_passos: break
-    return pontos
+      if info["passo"] == qntd_exata_passos: break
+    return pontos, info

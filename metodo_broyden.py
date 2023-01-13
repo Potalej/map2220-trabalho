@@ -9,6 +9,7 @@
 from auxiliares.baseMetodoNumerico import BaseMetodoNumerico
 from numpy.linalg import inv
 from time import perf_counter as time
+from numpy import float64 as flt
 
 class Broyden (BaseMetodoNumerico):
   """
@@ -33,7 +34,7 @@ class Broyden (BaseMetodoNumerico):
     self.F_lista = self.funcoes_f(F)
     self.F = self.funcao_F(self.F_lista)
 
-  def novoA_inv (self, p0, p1, Fp, A0_inv):
+  def novoA_inv (self, y, Fp, Fp1, A0_inv):
     """
       Calcula a nova matriz A^-1.
 
@@ -46,13 +47,50 @@ class Broyden (BaseMetodoNumerico):
       A0_inv : numpy.matrix
         Matriz A inversa atual.
     """
-    y1 = self.F(p1) - Fp
-    s1 = p1 - p0
+    y1 = Fp1 - Fp
+    s1 = y
     s1t = s1.T
-    A1_inv = A0_inv + (s1 - A0_inv * y1)*s1t*A0_inv / (s1t * A0_inv * y1)
+    z = A0_inv * y1
+    p = s1t * z
+    A1_inv = A0_inv + (s1 - z)*s1t*A0_inv * (1/p[0,0])
     return A1_inv
 
-  def passo_tempo (self, p, A_inv):
+  def novoA_inv_tempo (self, y, Fp, Fp1, A0_inv):
+    """
+      Calcula a nova matriz A^-1.
+
+      Parâmetros
+      ----------
+      p0 : numpy.matrix
+        Ponto anterior.
+      p1 : numpy.matrix
+        Ponto atual.
+      A0_inv : numpy.matrix
+        Matriz A inversa atual.
+    """
+    y1 = Fp1 - Fp
+    s1 = y
+    tempo = dict()
+    
+    t0 = time()
+    s1t = s1.T
+    tempo["s1t"] = time() - t0
+
+    t0 = time()    
+    z = A0_inv * y1
+    tempo["z"] = time() - t0
+
+    t0 = time()    
+    p = s1t * z
+    tempo["p"] = time() - t0
+
+    t0 = time()
+    A1_inv = A0_inv + (s1 - z)*s1t*A0_inv * (1/p[0,0])
+    tempo["A_inv"] = time() - t0
+
+    return A1_inv, tempo
+
+  def passo_tempo (self, p, Fp, A_inv):
     """
       Aplica um passo do Método de Broyden, armazenando
       o tempo decorrido para calcular cada parte.
@@ -61,19 +99,23 @@ class Broyden (BaseMetodoNumerico):
 
     # calcula o novo p
     t0 = time()
-    Fp = self.F(p)
-    p1 = p - A_inv * Fp
+    y = - A_inv * Fp
+    tempo["y"] = time() - t0
+
+    t0 = time()
+    p1 = p + y
     tempo["p1"] = time() - t0
 
-    return p1, tempo, Fp
+    return p1, y, tempo
 
-  def passo (self, p, A_inv):
+  def passo (self, p, Fp, A_inv):
     """
       Aplica um passo do Método de Broyden.
     """
     # calcula o novo p
-    p1 = p - A_inv * self.F(p)
-    return p1, 0
+    y = -A_inv * Fp
+    p1 = p + y
+    return p1, y, 0
 
   def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
     """
@@ -138,19 +180,29 @@ class Broyden (BaseMetodoNumerico):
       metodo = self.passo_tempo
     else: metodo = self.passo
 
+    # armazena as informações de erro
+    self.qntd_exata_passos = qntd_exata_passos
+    self.qntd_maxima_passos = qntd_maxima_passos
+    self.limitacao_float = limitacao_float
+    self.erro_admitido = erro_admitido
+
+    Fp = self.F(p0)
+
     # aplicando
     while True:
       # aplica o método
-      p1, tempo, Fp = metodo(p0, A_inv)
+      p1, y, tempo = metodo(p0, Fp, A_inv)
 
       # salva o valor obtido
       info["x"].append(p1)
 
       # salva o resíduo
-      info["residuo"].append(self.norma_infinito(self.F(p1)))
+      Fp1 = self.F(p1)
+      residuo = self.norma_infinito(Fp1)
+      info["residuo"].append(residuo)
 
       # erro
-      erro = self.norma_infinito(p1 - p0)
+      erro = self.norma_infinito(y)
       info["erro"].append(erro)
 
       # erro real
@@ -160,36 +212,20 @@ class Broyden (BaseMetodoNumerico):
       # adicionada à quantidade de passos
       info["passo"] += 1
       
-      # verifica se há quantidade exata de passos para parar
-      if qntd_exata_passos > 0:
-        # se tiver, verifica se já bateu
-        if info["passo"] == qntd_exata_passos: 
-          if exibir_causa_fim: print('[ quantidade exata de passos atingida ]')
-          break
-      else:
-        # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
-        if info["passo"] >= qntd_maxima_passos:
-          if exibir_causa_fim: print('[ quantidade máxima de passos atingida ]')
-          break
-        # caso queira verificar por limitação de ponto flutuante, verifica
-        elif limitacao_float:
-          if len(info["x"]) >= 2:
-            if info["erro"][-1] == info["erro"][-2]:
-              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
-              break
-        elif erro <= erro_admitido:
-          if exibir_causa_fim: print('[ erro inferior ao erro admitido ]')
-          break
-        # se por algum acaso o erro zerar, então convergiu
-        if erro == 0:
-          if exibir_causa_fim: print('[ a norma da diferença zerou ]')
-          break
+      # verifica se precisa parar
+      msg = self.parada(info)
+      if msg:
+        if exibir_causa_fim: print(f'Causa da parada: {msg}')
+        break
 
       # agora calculamos o novo A_inv
       if medir_tempo:
-        t0 = time()
-        A_inv = self.novoA_inv(p0, p1, Fp, A_inv)
-        tempo["A_inv"] = time() - t0
+        A_inv, tempos = self.novoA_inv_tempo(y, Fp, Fp1, A_inv)
+        
+        tempo["A_inv"] = tempos["A_inv"]
+        tempo["z"] = tempos["z"]
+        tempo["p"] = tempos["p"]
+        tempo["s1t"] = tempos["s1t"]
         tempo["total"] = sum(tempo[i] for i in tempo)
         
         # salva o tempo
@@ -197,11 +233,12 @@ class Broyden (BaseMetodoNumerico):
           try:    info["tempo"][etapa] += [tempo[etapa]]
           except: info["tempo"][etapa] = [tempo[etapa]]
 
-      else: A_inv = self.novoA_inv(p0, p1, A_inv)
+      else: A_inv = self.novoA_inv(y, Fp, Fp1, A_inv)
 
       # armazena a matriz jacobiana
       info["jacs"].append(A_inv)
 
       p0 = p1
+      Fp = Fp1
   
     return p0, info

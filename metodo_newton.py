@@ -144,6 +144,12 @@ class Newton (BaseMetodoNumerico):
       if type(solucao_exata[0]) == list:solucao_exata = self.matriz(solucao_exata)
       else: solucao_exata = self.matriz([[p] for p in solucao_exata])
 
+    # armazena as informações de erro
+    self.qntd_exata_passos = qntd_exata_passos
+    self.qntd_maxima_passos = qntd_maxima_passos
+    self.limitacao_float = limitacao_float
+    self.erro_admitido = erro_admitido
+
     # começa o método
     while True:
       # aplica o método
@@ -175,29 +181,10 @@ class Newton (BaseMetodoNumerico):
       # adiciona à quantidade de passos
       info["passo"] += 1
 
-      # verifica se há quantidade exata de passos para parar
-      if qntd_exata_passos > 0:
-        # se tiver, verifica se já bateu
-        if info["passo"] == qntd_exata_passos: 
-          if exibir_causa_fim: print('[ quantidade exata de passos atingida ]')
-          break
-      else:
-        # verifica se o passo ultrapassou o limite ou o erro ficou abaixo do admitido
-        if info["passo"] >= qntd_maxima_passos:
-          if exibir_causa_fim: print('[ quantidade máxima de passos atingida ]')
-          break
-        # caso queira verificar por limitação de ponto flutuante, verifica
-        elif limitacao_float:
-          if len(info["x"]) >= 3:
-            if info["erro"][-1] == info["erro"][-3]:
-              if exibir_causa_fim: print('[ limitação de ponto flutuante ]')
-              break
-        elif erro < erro_admitido:
-          if exibir_causa_fim: print('[ erro inferior ao erro admitido ]')
-          break
-        # se por algum acaso o erro zerar, então convergiu
-        if erro == 0:
-          if exibir_causa_fim: print('[ a norma da diferença zerou ]')
-          break
+      # verifica se precisa parar
+      msg = self.parada(info)
+      if msg:
+        if exibir_causa_fim: print(f'Causa da parada: {msg}')
+        break
     
     return p0, info
