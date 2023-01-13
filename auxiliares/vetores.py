@@ -7,11 +7,7 @@
   matriciais, ou seja, que possuem dois índices. 
 """
 from numpy import matrix, all
-try:
-  from numpy import float128 as flt
-  print('[ usando float128 ]\n')
-except:
-  flt = float
+flt = float
 
 
 class Vetores:

@@ -20,7 +20,7 @@ def exibir_vetores (info:dict, formato:str="presto")->str:
 
   tabela = []
   for i in range(info["passo"]):
-    tabela.append([i])
+    tabela.append([i+1])
     tabela[-1] += [ info["x"][i][j,0] for j in range(n)]
     tabela[-1] += [ info["erro"][i] ]
     tabela[-1] += [ info["erro real"][i] ]
@@ -29,7 +29,7 @@ def exibir_vetores (info:dict, formato:str="presto")->str:
   tabela = list(zip(*tabela))
 
   cabecalho = ["i"] + [f"x{i+1}" for i in range(n)] + ["diferença", "erro", "resíduo"]
-  exibir(cabecalho, tabela, formato)
+  return exibir(cabecalho, tabela, formato)
 
 def grafico_tempo (etapas:list, valores:list):
   plt.bar(etapas, valores, width=.6, color='black')
