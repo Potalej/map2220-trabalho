@@ -26,7 +26,10 @@ class Broyden (BaseMetodoNumerico):
       Tamanho do passo a ser considerado na diferenciação numérica, se 
       for o caso.
   """
-  def __init__ (self, F:list, metodo_diferenciacao=False, h=0):
+  def __init__ (self, F:list, dominio:list=[], metodo_diferenciacao=False, h=0):
+    if len(dominio) > 0:
+      self.dominio = dominio
+
     if metodo_diferenciacao: super().__init__(metodo_diferenciacao=metodo_diferenciacao, h=h)
     else: super().__init__()
     
@@ -117,7 +120,7 @@ class Broyden (BaseMetodoNumerico):
     p1 = p + y
     return p1, y, 0
 
-  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1e2, solucao_exata=[], qntd_exata_passos:int=-1, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True)->tuple:
+  def aplicar (self, p0, Jac=[], erro_admitido:float=1e-5, qntd_maxima_passos=1e2, solucao_exata=[], qntd_exata_passos:int=-1, residuo_admitido:float=0, medir_tempo:bool=False, limitacao_float:bool=False, exibir_causa_fim:bool=True, adaptado:bool=False)->tuple:
     """
       Para facilitar a aplicação, pode-se utilizar esta função.
 
@@ -140,6 +143,8 @@ class Broyden (BaseMetodoNumerico):
       qntd_exata_passos : int = -1
         Se passado um valor inteiro positivo, a função encerrá somente ao 
         atingir esta quantidade de passos.
+      residuo_admitido : float = 0
+        Caso queira limitar via resíduo.
       medir_tempo : bool = False
         Caso se deseje medir o tempo necessário para calcular cada passo,
         deve-se passar `True` e as informações de tempo serão retornadas
@@ -150,6 +155,9 @@ class Broyden (BaseMetodoNumerico):
         passo atingir seu mínimo fixo.
       exibir_causa_fim : bool = True
         Exibirá a causa do encerramento do método quando `True`.
+      adaptado : bool = False
+        Parece delimitar o método sobre um domínio. Necessita do parâmetro 
+        `dominio` na inicialização.
     """
     # se o ponto inicial for do tipo lista, precisa converter
     p0 = self.ponto_matriz(p0)
@@ -185,6 +193,7 @@ class Broyden (BaseMetodoNumerico):
     self.qntd_maxima_passos = qntd_maxima_passos
     self.limitacao_float = limitacao_float
     self.erro_admitido = erro_admitido
+    self.residuo_admitido = residuo_admitido
 
     Fp = self.F(p0)
 
@@ -192,6 +201,16 @@ class Broyden (BaseMetodoNumerico):
     while True:
       # aplica o método
       p1, y, tempo = metodo(p0, Fp, A_inv)
+
+      # caso esteja delimitado, verifica se está dentro do domínio
+      if adaptado:
+        for i in range(len(p1)):
+          if p1[i,0] < self.dominio[i][0]:
+            p1[i,0] = p0[i,0]
+          elif p1[i,0] > self.dominio[i][1]:
+            p1[i,0] = p0[i,0]
+        # nesse caso, calcula o novo y
+        y = p1 - p0
 
       # salva o valor obtido
       info["x"].append(p1)
