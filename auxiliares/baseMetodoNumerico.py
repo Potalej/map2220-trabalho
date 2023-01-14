@@ -96,6 +96,9 @@ class BaseMetodoNumerico(Diferenciacao):
         msg = self.criterio_float(info)
       elif info["erro"][-1] < self.erro_admitido:
         msg = 'erro inferior ao erro admitido'
+      # caso o resíduo fique menor que o resíduo admitido
+      elif info["residuo"][-1] < self.residuo_admitido:
+        msg = 'resíduo inferior ao erro admitido'
       # se por algum acaso o erro zerar, então convergiu
       if info["erro"][-1] == 0:
         msg = 'a norma da diferença zerou'

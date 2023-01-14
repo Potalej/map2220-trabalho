@@ -13,13 +13,13 @@ def exibir (cabecalho:list, colunas:list, formato:str="presto")->str:
   print(tabela)
   return tabela
 
-def exibir_vetores (info:dict, formato:str="presto")->str:
+def exibir_vetores (info:dict, formato:str="presto", n_inicio:int=0)->str:
   
   # tamanho do vetor para facilitar
   n = len(info["x"][0])
 
   tabela = []
-  for i in range(info["passo"]):
+  for i in range(n_inicio, info["passo"]):
     tabela.append([i+1])
     tabela[-1] += [ info["x"][i][j,0] for j in range(n)]
     tabela[-1] += [ info["erro"][i] ]
