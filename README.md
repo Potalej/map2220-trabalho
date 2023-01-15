@@ -1,4 +1,4 @@
-# Trabalho computacional final de MAP2220 - Fundamentos de Análise Numérica
+# Trabalho computacional final de MAP2220 - Fundamentos de Análise Numérica 
 
 Na natureza, é muito comum encontrar fenômenos cuja descrição matemática se dá na forma de equações não-lineares, seja em dinâmica dos fluidos, mecânica celeste ou mesmo em bioinformática. Porém, a resolução de sistemas de equações não-lineares é uma tarefa árdua, quando não impossível, de ser feita analiticamente, ou seja, com ferramentais matemáticos exatos. Dessa forma, surge a necessidade de ter métodos numéricos, que se aproximam das soluções sempre com alguma margem de erro. Neste trabalho são estudados brevemente dois destes método: o Método de Newton e o Método de Broyden. Após a teoria também são resolvidas os três itens solicitados no enunciado do trabalho.
 
