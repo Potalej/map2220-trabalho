@@ -8,6 +8,7 @@
 """
 from auxiliares.diferenciacao import Diferenciacao
 from auxiliares.exibir import grafico_tempo, percentual
+from statistics import stdev
 
 class BaseMetodoNumerico(Diferenciacao):
   """
@@ -57,13 +58,18 @@ class BaseMetodoNumerico(Diferenciacao):
     """
     tempo_medio = {}
     qntd_total_passos = 0
+    tempo_etapas = {}
     for vez in range(qntd_vezes):
       # aplica o método
       x_vez, info_vez = self.aplicar(*params)
       qntd_total_passos += info_vez["passo"]
       for indice in info_vez['tempo']:
-        try:    tempo_medio[indice] += sum(info_vez['tempo'][indice])
-        except: tempo_medio[indice]  = sum(info_vez['tempo'][indice])
+        try:    
+          tempo_medio[indice] += sum(info_vez['tempo'][indice])
+          tempo_etapas[indice] += info_vez['tempo'][indice]
+        except: 
+          tempo_medio[indice]  = sum(info_vez['tempo'][indice])
+          tempo_etapas[indice] = info_vez['tempo'][indice]
     
     percentuais = {}
     for indice in tempo_medio:
@@ -73,6 +79,7 @@ class BaseMetodoNumerico(Diferenciacao):
 
     print(f"> TEMPO TOTAL: {round(tempo_medio['total'], 4)}s")
     print(f"> TEMPO TOTAL MÉDIO: {round(tempo_medio['total']/qntd_total_passos, 6)}s")
+    print(f"> TEMPO TOTAL DP: {round(stdev(tempo_etapas['total']), 6)}s")
     print(f"> QNTD MÉDIA DE PASSOS: {round(qntd_total_passos/qntd_vezes, 2)}")
     print("> PERCENTUAIS")
     for indice in percentuais:

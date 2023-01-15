@@ -73,39 +73,3 @@ class DiferencasFinitas:
     ph_pos[i,0] += self.h # adiciona o passo h
     ph_neg[i,0] -= self.h # adiciona o passo h
     return (f(ph_pos)-f(ph_neg))/(2*self.h)
-
-  def h_otimo_progressivas_vetorial (self, epsilon_estrela, F, diag_H, x0):
-    """
-      Calcula os valores ótimos para os passos `h` de uma função multivariada
-      a partir da diagonal de sua matriz Hessiana.
-    """
-    lista_h = []
-    for i, f in enumerate(F):
-      lista_h.append(
-        2*sqrt(epsilon_estrela*abs(f(x0)))/sqrt(abs(diag_H[i](x0)))
-      )
-    return lista_h
-
-  def h_otimo_centradas_vetorial (self, epsilon_estrela, F, diag_H3, x0):
-    """
-      Calcula os valores ótimos para os passos `h` de uma função multivariada
-      a partir da diagonal de um equivalente tensorial da matriz Hessiana.
-    """
-    cbrt = lambda x: x**(1/3)
-    lista_h = []
-    for i, f in enumerate(F):
-      lista_h.append(
-        cbrt(3*epsilon_estrela*abs(f(x0)))/cbrt(abs(diag_H3[i](x0)))
-      )
-    return lista_h
-
-  def h_otimo_progressivas (self, epsilon_estrela, f, f__, x0):
-    """
-      Calcula o valor ótimo para o passo `h`.
-
-    """
-    return 2*sqrt(epsilon_estrela*abs(f(x0)))/sqrt(abs(f__(x0)))
-
-  def h_otimo_centradas (self, epsilon_estrela, f, f___, x0):
-    cbrt = lambda x: x**(1/3)
-    return cbrt(3*epsilon_estrela*abs(f(x0)))/cbrt(abs(f___(x0)))
